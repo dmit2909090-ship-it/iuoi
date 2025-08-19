@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Калькулятор</title>
+  <style>
+    body {
+      font-family: 'VK Sans', sans-serif;
+      background: #f4f5f7;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 1px 10px rgba(0,0,0,0.1);
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #5181b8;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      margin-top: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    button:hover {
+      background: #426c9b;
+    }
+  </style>
+  <script src="https://vk.com/js/api/mini_apps_sdk.js?168" defer></script>
+</head>
+<body>
+  <div class="container" id="formScreen">
+    <h1>Рассчитаем стоимость</h1>
+    <form id="calcForm">
+      <label>Сумма (₽): <input type="number" id="amount" required /></label><br />
+      <label>Срок (мес): <input type="number" id="months" required /></label><br />
+      <button type="submit">Рассчитать</button>
+    </form>
+  </div>
+
+  <div class="container" id="resultScreen" style="display: none;">
+    <h2>Расчёт готов!</h2>
+    <p>Ежемесячный платёж: <strong id="payment"></strong> ₽</p>
+    <p>С вами свяжется наш менеджер.</p>
+    <button id="backBtn">Назад</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const formScreen = document.getElementById('formScreen');
+      const resultScreen = document.getElementById('resultScreen');
+      const calcForm = document.getElementById('calcForm');
+      const paymentOutput = document.getElementById('payment');
+      const backBtn = document.getElementById('backBtn');
+
+      function calculatePayment(amount, months) {
+        return (amount / months).toFixed(2);
+      }
+
+      calcForm.onsubmit = (e) => {
+        e.preventDefault();
+        
+        const amount = parseFloat(document.getElementById('amount').value);
+        const months = parseInt(document.getElementById('months').value);
+
+        if (amount <= 0 || months <= 0) {
+          alert("Введите корректные значения!");
+          return;
+        }
+
+        const payment = calculatePayment(amount, months);
+        paymentOutput.textContent = payment;
+
+        formScreen.style.display = 'none';
+        resultScreen.style.display = 'block';
+      };
+
+      backBtn.onclick = () => {
+        formScreen.style.display = 'block';
+        resultScreen.style.display = 'none';
+        calcForm.reset();
+      };
+    });
+  </script>
+</body>
+</html>
