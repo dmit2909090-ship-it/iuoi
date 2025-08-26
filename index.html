@@ -78,10 +78,11 @@
 
   <!-- Экран формы -->
   <div class="container" id="formScreen">
-    <h1>Рассчитаем стоимость</h1>
+    <h1>Рассчитаем стоимость кредита</h1>
     <form id="calcForm">
-      <label>Сумма (₽): <input type="number" id="amount" placeholder="Например: 10000" required /></label>
+      <label>Сумма (₽): <input type="number" id="amount" placeholder="Например: 100000" required /></label>
       <label>Срок (мес): <input type="number" id="months" placeholder="Например: 12" required /></label>
+      <label>Процентная ставка (% годовых): <input type="number" id="rate" placeholder="Например: 15" value="15" step="0.1" required /></label>
       <button type="submit">Рассчитать</button>
     </form>
   </div>
@@ -90,6 +91,7 @@
   <div class="container" id="resultScreen" style="display: none;">
     <h2>Расчёт готов!</h2>
     <p>Ежемесячный платёж: <strong id="payment"></strong> ₽</p>
+    <p>Процентная ставка: <strong id="rateValue"></strong>% годовых</p>
     <p>С вами свяжётся наш менеджер для уточнения деталей.</p>
     <button id="backBtn">Назад</button>
   </div>
@@ -97,28 +99,28 @@
   <!-- Основной скрипт -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Подписка на события от VK — показывает, что приложение живое
+      // Подписка на события от VK
       if (window.vkBridge) {
         vkBridge.subscribe((event) => {
           console.log('[VK Event]', event);
-          
-          // Можно обрабатывать разные события
           if (event.detail?.type === 'VKWebAppInitResult') {
             console.log('✅ Приложение инициализировано');
           }
         });
       }
 
-      // Элементы интерфейса
+      // Элементы
       const formScreen = document.getElementById('formScreen');
       const resultScreen = document.getElementById('resultScreen');
       const calcForm = document.getElementById('calcForm');
       const paymentOutput = document.getElementById('payment');
+      const rateValueOutput = document.getElementById('rateValue');
       const backBtn = document.getElementById('backBtn');
 
-      // Простой расчёт (без процентов)
-      function calculatePayment(amount, months) {
-        return (amount / months).toFixed(2);
+      // Формула аннуитетного платежа
+      function calculateAnnuityPayment(amount, months, annualRate) {
+        const monthlyRate = annualRate / 100 / 12;
+        return (amount * monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
       }
 
       // Обработка формы
@@ -127,16 +129,18 @@
         
         const amount = parseFloat(document.getElementById('amount').value);
         const months = parseInt(document.getElementById('months').value);
+        const rate = parseFloat(document.getElementById('rate').value);
 
-        if (isNaN(amount) || isNaN(months) || amount <= 0 || months <= 0) {
+        if (isNaN(amount) || isNaN(months) || isNaN(rate) || amount <= 0 || months <= 0 || rate < 0) {
           alert("Введите корректные значения!");
           return;
         }
 
-        const payment = calculatePayment(amount, months);
-        paymentOutput.textContent = payment;
+        const payment = calculateAnnuityPayment(amount, months, rate);
+        paymentOutput.textContent = payment.toFixed(2);
+        rateValueOutput.textContent = rate;
 
-        // Тактильная обратная связь (вибрация)
+        // Тактильная обратная связь
         if (window.vkBridge) {
           vkBridge.send("VKWebAppTapticImpactOccurred", { style: "medium" });
         }
@@ -154,6 +158,5 @@
       };
     });
   </script>
-
 </body>
 </html>
