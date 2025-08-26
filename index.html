@@ -1,59 +1,159 @@
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // === ВАЖНО: Отправляем событие инициализации ===
-    if (window.VK && window.VK.call) {
-      // Для старого SDK (mini_apps_sdk.js)
-      VK.call('init');
-    } else if (window.VKBridge) {
-      // Для нового VK Bridge (современный способ)
-      VKBridge.send("VKWebAppInit");
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Калькулятор</title>
+
+  <!-- Подключаем VK Bridge (официальная библиотека) -->
+  <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+
+  <!-- Инициализируем приложение — обязательно для модерации -->
+  <script>
+    if (window.vkBridge) {
+      vkBridge.send("VKWebAppInit");
     }
+  </script>
 
-    // === Дальше ваш код калькулятора ===
-    const formScreen = document.getElementById('formScreen');
-    const resultScreen = document.getElementById('resultScreen');
-    const calcForm = document.getElementById('calcForm');
-    const paymentOutput = document.getElementById('payment');
-    const backBtn = document.getElementById('backBtn');
-
-    function calculatePayment(amount, months) {
-      return (amount / months).toFixed(2);
+  <!-- Стили -->
+  <style>
+    body {
+      font-family: 'VK Sans', sans-serif;
+      background: #f4f5f7;
+      margin: 0;
+      padding: 20px;
+      color: #2d3340;
     }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 1px 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      margin-top: 0;
+      color: #2d3340;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      background: #5181b8;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      margin-top: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #426c9b;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    strong {
+      color: #5181b8;
+    }
+  </style>
+</head>
+<body>
 
-    calcForm.onsubmit = (e) => {
-      e.preventDefault();
-      
-      const amount = parseFloat(document.getElementById('amount').value);
-      const months = parseInt(document.getElementById('months').value);
+  <!-- Экран формы -->
+  <div class="container" id="formScreen">
+    <h1>Рассчитаем стоимость</h1>
+    <form id="calcForm">
+      <label>Сумма (₽): <input type="number" id="amount" placeholder="Например: 10000" required /></label>
+      <label>Срок (мес): <input type="number" id="months" placeholder="Например: 12" required /></label>
+      <button type="submit">Рассчитать</button>
+    </form>
+  </div>
 
-      if (amount <= 0 || months <= 0) {
-        alert("Введите корректные значения!");
-        return;
+  <!-- Экран результата -->
+  <div class="container" id="resultScreen" style="display: none;">
+    <h2>Расчёт готов!</h2>
+    <p>Ежемесячный платёж: <strong id="payment"></strong> ₽</p>
+    <p>С вами свяжётся наш менеджер для уточнения деталей.</p>
+    <button id="backBtn">Назад</button>
+  </div>
+
+  <!-- Основной скрипт -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Подписка на события от VK — показывает, что приложение живое
+      if (window.vkBridge) {
+        vkBridge.subscribe((event) => {
+          console.log('[VK Event]', event);
+          
+          // Можно обрабатывать разные события
+          if (event.detail?.type === 'VKWebAppInitResult') {
+            console.log('✅ Приложение инициализировано');
+          }
+        });
       }
 
-      const payment = calculatePayment(amount, months);
-      paymentOutput.textContent = payment;
+      // Элементы интерфейса
+      const formScreen = document.getElementById('formScreen');
+      const resultScreen = document.getElementById('resultScreen');
+      const calcForm = document.getElementById('calcForm');
+      const paymentOutput = document.getElementById('payment');
+      const backBtn = document.getElementById('backBtn');
 
-      formScreen.style.display = 'none';
-      resultScreen.style.display = 'block';
-
-      // Можно отправить событие, что расчёт завершён (опционально)
-      if (window.VKBridge) {
-        VKBridge.send("VKWebAppTapticImpactOccurred", { style: "medium" });
+      // Простой расчёт (без процентов)
+      function calculatePayment(amount, months) {
+        return (amount / months).toFixed(2);
       }
-    };
 
-    backBtn.onclick = () => {
-      formScreen.style.display = 'block';
-      resultScreen.style.display = 'none';
-      calcForm.reset();
-    };
+      // Обработка формы
+      calcForm.onsubmit = (e) => {
+        e.preventDefault();
+        
+        const amount = parseFloat(document.getElementById('amount').value);
+        const months = parseInt(document.getElementById('months').value);
 
-    // (Опционально) Подписка на события от VK
-    if (window.VKBridge) {
-      VKBridge.subscribe((event) => {
-        console.log('VK Event:', event);
-      });
-    }
-  });
-</script>
+        if (isNaN(amount) || isNaN(months) || amount <= 0 || months <= 0) {
+          alert("Введите корректные значения!");
+          return;
+        }
+
+        const payment = calculatePayment(amount, months);
+        paymentOutput.textContent = payment;
+
+        // Тактильная обратная связь (вибрация)
+        if (window.vkBridge) {
+          vkBridge.send("VKWebAppTapticImpactOccurred", { style: "medium" });
+        }
+
+        // Переключение экранов
+        formScreen.style.display = 'none';
+        resultScreen.style.display = 'block';
+      };
+
+      // Кнопка "Назад"
+      backBtn.onclick = () => {
+        formScreen.style.display = 'block';
+        resultScreen.style.display = 'none';
+        calcForm.reset();
+      };
+    });
+  </script>
+
+</body>
+</html>
