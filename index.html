@@ -1,162 +1,1086 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Калькулятор</title>
-
-  <!-- Подключаем VK Bridge (официальная библиотека) -->
-  <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-
-  <!-- Инициализируем приложение — обязательно для модерации -->
-  <script>
-    if (window.vkBridge) {
-      vkBridge.send("VKWebAppInit");
-    }
-  </script>
-
-  <!-- Стили -->
-  <style>
-    body {
-      font-family: 'VK Sans', sans-serif;
-      background: #f4f5f7;
-      margin: 0;
-      padding: 20px;
-      color: #2d3340;
-    }
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 1px 10px rgba(0,0,0,0.1);
-    }
-    h1, h2 {
-      margin-top: 0;
-      color: #2d3340;
-    }
-    label {
-      display: block;
-      margin: 10px 0 5px;
-      font-weight: 500;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0 15px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    button {
-      background: #5181b8;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      margin-top: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      width: 100%;
-      font-weight: 600;
-    }
-    button:hover {
-      background: #426c9b;
-    }
-    p {
-      font-size: 16px;
-      line-height: 1.5;
-    }
-    strong {
-      color: #5181b8;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Конструктор ТЗ с иерархией</title><!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Конструктор ТЗ с иерархией</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+  body { padding: 20px; font-family: Arial, sans-serif; }
+  .section { margin-bottom: 20px; }
+  #add-step { margin-top: 15px; }
+  .step-item {
+    cursor: default;
+    transition: box-shadow 0.2s;
+    position: relative;
+    padding-left: 20px !important;
+  }
+  .step-item:hover {
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  }
+  .step-item::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ccc;
+  }
+  .step-item:first-child::before {
+    top: 16px;
+  }
+  .step-item:last-child::before {
+    bottom: 16px;
+  }
+  .step-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: -12px -12px 12px -12px;
+  }
+  .step-actions .btn {
+    padding: 2px 6px;
+    font-size: 12px;
+  }
+  .variant-block, .option-block {
+    margin: 10px 0; padding: 10px; border: 1px dashed #aaa; border-radius: 4px; background: #fff;
+  }
+  .variant-block label, .option-block label {
+    display: block; margin-top: 5px; font-weight: bold; font-size: 14px;
+  }
+  .variant-block input, .variant-block textarea, .option-block input, .option-block textarea {
+    width: 100%; padding: 6px; margin-top: 3px; box-sizing: border-box; font-size: 14px;
+  }
+  .btn-variant, .btn-option { padding: 5px 10px; margin-right: 5px; font-size: 12px; }
+  .conditional-container, .assignment-container, .task-container, .notification-container, .news-container {
+    margin-top: 15px;
+  }
+  .form-group label {
+    font-weight: bold;
+    font-size: 14px;
+  }
+  select.form-control, input.form-control, textarea.form-control {
+    font-size: 14px;
+  }
+  .step-children {
+    margin-left: 30px;
+    border-left: 2px solid #ddd;
+    padding-left: 15px;
+    margin-top: 10px;
+  }
+  .step-name-input {
+    font-weight: bold;
+    font-size: 16px;
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  .badge-hierarchy {
+    font-size: 10px;
+    margin-left: 8px;
+  }
+</style>
 </head>
 <body>
 
-  <!-- Экран формы -->
-  <div class="container" id="formScreen">
-    <h1>Рассчитаем стоимость кредита</h1>
-    <form id="calcForm">
-      <label>Сумма (₽): <input type="number" id="amount" placeholder="Например: 100000" required /></label>
-      <label>Срок (мес): <input type="number" id="months" placeholder="Например: 12" required /></label>
-      <label>Процентная ставка (% годовых): <input type="number" id="rate" placeholder="Например: 30" value="30" step="0.1" required /></label>
-      <button type="submit">Рассчитать</button>
-    </form>
-  </div>
+<div class="container">
+<h1 class="mb-4">🧱 Конструктор ТЗ с иерархией</h1>
 
-  <!-- Экран результата -->
-  <div class="container" id="resultScreen" style="display: none;">
-    <h2>Расчёт готов!</h2>
-    <p>Ежемесячный платёж: <strong id="payment"></strong> ₽</p>
-    <p>Процентная ставка: <strong id="rateValue"></strong>% годовых</p>
-    <p>С вами свяжётся наш менеджер для уточнения деталей.</p>
-    <button id="backBtn">Назад</button>
-  </div>
+<!-- 1. Участники -->
+<div class="section border p-3 rounded">
+  <h4>👤 Подпиши участников</h4>
+ <div class="mb-2">
+  <input type="text" id="new-participant" class="form-control" placeholder="Введите нового участника" />
+</div>
+<div id="participants" class="row"></div>
+<button id="add-participant-btn" class="btn btn-primary mt-2">➕ Добавить участника</button>
+</div>
 
-  <!-- Основной скрипт -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Подписка на события от VK
-      if (window.vkBridge) {
-        vkBridge.subscribe((event) => {
-          console.log('[VK Event]', event);
-          if (event.detail?.type === 'VKWebAppInitResult') {
-            console.log('✅ Приложение инициализировано');
+<!-- 2. Шаги -->
+<div class="section border p-3 rounded">
+  <h4>🧩 Добавь шаги (с подшагами и условиями)</h4>
+  <div id="steps-container"></div>
+  <button id="add-step" class="btn btn-primary mt-3">➕ Добавить корневой шаг</button>
+</div>
+
+<!-- 3. Экспорт и импорт -->
+<div class="section border p-3 rounded">
+  <h4>💾 Сохранить промежуточные результаты. Название процесса будет именем файла</h4>
+  <div class="form-group">
+    <label>Название процесса</label>
+    <input type="text" id="process-name" class="form-control" placeholder="Например, 'Обработка заявок'" value="Мой бизнес-процесс"/>
+  </div>
+  <button id="export-btn" class="btn btn-secondary mb-2">📥 Сохранить в черновик</button>
+  <button id="trigger-import" class="btn btn-secondary mb-2 ml-2">📤 Загрузить/применить файл</button>
+  <input type="file" id="import-file" accept=".json" style="display:none;">
+</div>
+
+<!-- 4. Очистить всё -->
+<div class="section border p-3 rounded">
+  <h4>🧹 Очистить всё</h4>
+  <button id="clear-all-btn" class="btn btn-danger">🗑️ Очистить ТЗ</button>
+</div>
+
+<!-- 5. Создать финальное ТЗ -->
+<div class="section border p-3 rounded">
+  <h4>📄 Создать финальное ТЗ</h4>
+  <button id="generate-tz" class="btn btn-warning">✅ Создать и скачать ТЗ</button>
+  <div id="final-tz" class="mt-3"></div>
+</div>
+
+<!-- Место для сообщений -->
+<div id="message" class="mt-3"></div>
+
+</div>
+
+<script>
+$(function() {
+  let participants = {};
+  let steps = []; // Массив корневых шагов
+  let nextId = 1;
+
+  // Генерация уникального ID
+  function generateId() {
+    return 'step_' + nextId++;
+  }
+
+  // ✅ Функция очистки всего
+  function clearAllData() {
+    participants = {};
+    steps = [];
+    nextId = 1;
+    participants["Пользователь 1"] = "Пользователь 1";
+    renderParticipants();
+    renderSteps();
+  }
+
+  clearAllData();
+
+  // Генерация options для участников
+  function getParticipantOptions(selectedKey = "") {
+    return Object.keys(participants).map(k => 
+      `<option value="${k}" ${k === selectedKey ? 'selected' : ''}>${k}</option>`
+    ).join('');
+  }
+
+  // Рендер шага с рекурсией
+  function renderStep(step, level = 0) {
+    const id = step.id;
+    const participantOptions = getParticipantOptions(step.participant);
+    const fromOptions = getParticipantOptions(step.from || Object.keys(participants)[0]);
+    const assigneeOptions = getParticipantOptions(step.assignee || Object.keys(participants)[0]);
+    const observerOptions = getParticipantOptions(step.observer || "");
+    const creatorOptions = getParticipantOptions(step.creator || Object.keys(participants)[0]);
+
+    let contentHtml = '';
+
+    switch(step.action) {
+      case "Уведомление":
+        contentHtml = `
+          <div class="notification-container">
+            <div class="form-group">
+              <label>От кого</label>
+              <select class="form-control notification-from">
+                ${fromOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Текст уведомления</label>
+              <textarea class="form-control notification-text" rows="3">${escapeHtml(step.text || '')}</textarea>
+            </div>
+          </div>
+        `;
+        break;
+
+      case "Задание":
+        const typeOptions = `
+          <option value="Ознакомление" ${step.type === "Ознакомление" ? 'selected' : ''}>Ознакомление</option>
+          <option value="Ввод данных" ${step.type === "Ввод данных" ? 'selected' : ''}>Ввод данных</option>
+          <option value="Ввод с утверждением" ${step.type === "Ввод с утверждением" ? 'selected' : ''}>Ввод с утверждением</option>
+          <option value="Любой" ${step.type === "Любой" ? 'selected' : ''}>Любой</option>
+        `;
+
+        let optionsHtml = '';
+        if (step.options && step.options.length) {
+          optionsHtml = step.options.map((opt, i) => `
+            <div class="option-block" data-option-index="${i}">
+              <label>Вариант ответа ${i+1}:</label>
+              <input type="text" class="option-text" value="${escapeHtml(opt.text || '')}" placeholder="Текст варианта">
+              <button class="btn btn-sm btn-outline-danger remove-option-btn">🗑️ Удалить</button>
+            </div>
+          `).join('');
+        }
+
+        contentHtml = `
+          <div class="assignment-container">
+            <div class="form-group">
+              <label>Текст задания</label>
+              <textarea class="form-control assignment-text" rows="3">${escapeHtml(step.text || '')}</textarea>
+            </div>
+            <div class="form-group">
+              <label>Тип задания</label>
+              <select class="form-control assignment-type">
+                ${typeOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Какие данные вводятся (если применимо)</label>
+              <textarea class="form-control assignment-data" rows="2">${escapeHtml(step.dataFields || '')}</textarea>
+            </div>
+            <div class="form-group">
+              <button class="btn btn-sm btn-outline-primary add-option-btn">➕ Добавить вариант ответа</button>
+              <div class="assignment-options mt-2">
+                ${optionsHtml}
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case "Новость в ленту":
+        contentHtml = `
+          <div class="news-container">
+            <div class="form-group">
+              <label>От кого</label>
+              <select class="form-control news-from">
+                ${fromOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Текст новости</label>
+              <textarea class="form-control news-text" rows="3">${escapeHtml(step.text || '')}</textarea>
+            </div>
+          </div>
+        `;
+        break;
+
+      case "Задача":
+        contentHtml = `
+          <div class="task-container">
+            <div class="form-group">
+              <label>Постановщик</label>
+              <select class="form-control task-creator">
+                ${creatorOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ответственный</label>
+              <select class="form-control task-assignee">
+                ${assigneeOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Наблюдатель</label>
+              <select class="form-control task-observer">
+                <option value="">— Не выбран —</option>
+                ${observerOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Соисполнители (через запятую)</label>
+              <input type="text" class="form-control task-coexecutors" value="${escapeHtml(step.coexecutors || '')}" placeholder="Имя1, Имя2, Имя3">
+            </div>
+            <div class="form-group">
+              <label>Описание задачи</label>
+              <textarea class="form-control task-description" rows="3">${escapeHtml(step.description || '')}</textarea>
+            </div>
+          </div>
+        `;
+        break;
+
+      case "Условный блок — Варианты решения":
+        let variantsHtml = '';
+        if (step.conditions && step.conditions.length) {
+          variantsHtml = step.conditions.map((v, i) => `
+            <div class="variant-block" data-condition-index="${i}">
+              <label>Условие:</label>
+              <input type="text" class="condition-text" value="${escapeHtml(v.condition || '')}" placeholder="Например: Сумма > 10000">
+              <label>Переход к шагу:</label>
+              <select class="condition-next" data-step-id="${id}">
+                <option value="">— Выберите шаг —</option>
+                ${getAllStepsOptions(id, v.nextStepId)}
+              </select>
+              <button class="btn btn-sm btn-outline-danger remove-condition-btn">🗑️ Удалить</button>
+            </div>
+          `).join('');
+        }
+
+        contentHtml = `
+          <div class="conditional-container">
+            <div class="form-group">
+              <label>Комментарий (что происходит в этом блоке)</label>
+              <textarea class="form-control conditional-comment" rows="2" placeholder="Опишите логику блока...">${escapeHtml(step.comment || '')}</textarea>
+            </div>
+            <button class="btn btn-sm btn-outline-primary add-condition-btn">➕ Добавить условие перехода</button>
+            <div class="conditional-variants mt-2">
+              ${variantsHtml}
+            </div>
+          </div>
+        `;
+        break;
+
+      default:
+        contentHtml = `
+          <div class="form-group">
+            <label>Комментарий</label>
+            <textarea class="form-control comment">${step.comment || ''}</textarea>
+          </div>
+        `;
+    }
+
+    // Рендерим детей
+    let childrenHtml = '';
+    if (step.children && step.children.length > 0) {
+      childrenHtml = `
+        <div class="step-children">
+          ${step.children.map(child => renderStep(child, level + 1)).join('')}
+        </div>
+      `;
+    }
+
+    const paddingLeft = level * 30;
+
+    // Определяем, можно ли двигать вверх/вниз
+    let canMoveUp = false;
+    let canMoveDown = false;
+
+    if (level === 0) {
+      // Корневой шаг
+      const index = steps.findIndex(s => s.id === id);
+      canMoveUp = index > 0;
+      canMoveDown = index < steps.length - 1;
+    } else {
+      // Подшаг — ищем родителя
+      function findParent(stepList) {
+        for (let parent of stepList) {
+          if (parent.children && parent.children.some(child => child.id === id)) {
+            const index = parent.children.findIndex(child => child.id === id);
+            return {
+              index,
+              length: parent.children.length
+            };
+          }
+          if (parent.children && parent.children.length) {
+            const result = findParent(parent.children);
+            if (result) return result;
+          }
+        }
+        return null;
+      }
+
+      const pos = findParent(steps);
+      if (pos) {
+        canMoveUp = pos.index > 0;
+        canMoveDown = pos.index < pos.length - 1;
+      }
+    }
+
+    return `
+      <div class="border p-2 mb-2 rounded step-item" data-id="${id}" data-level="${level}" style="padding-left: ${paddingLeft + 20}px;">
+        <div class="step-header">
+          <input type="text" class="step-name-input" value="${escapeHtml(step.name || 'Без названия')}" placeholder="Название шага">
+          <span class="badge badge-secondary badge-hierarchy">Уровень ${level + 1}</span>
+          <div class="step-actions">
+            <button class="btn btn-sm btn-outline-primary add-child-step" title="Добавить подшаг">➕ Подшаг</button>
+            <button class="btn btn-sm btn-outline-secondary move-up" ${!canMoveUp ? 'disabled' : ''} title="Переместить вверх">▲</button>
+            <button class="btn btn-sm btn-outline-secondary move-down" ${!canMoveDown ? 'disabled' : ''} title="Переместить вниз">▼</button>
+            <button class="btn btn-sm btn-danger delete-step">🗑️ Удалить</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Тип действия</label>
+          <select class="form-control action-select">
+            <option value="Уведомление" ${step.action === "Уведомление" ? 'selected' : ''}>Уведомление</option>
+            <option value="Задание" ${step.action === "Задание" ? 'selected' : ''}>Задание</option>
+            <option value="Новость в ленту" ${step.action === "Новость в ленту" ? 'selected' : ''}>Новость в ленту</option>
+            <option value="Задача" ${step.action === "Задача" ? 'selected' : ''}>Задача</option>
+            <option value="Условный блок — Варианты решения" ${step.action === "Условный блок — Варианты решения" ? 'selected' : ''}>Условный блок — Варианты решения</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>👤 Исполнитель (Кому)</label>
+          <select class="form-control participant-select">
+            ${participantOptions}
+          </select>
+        </div>
+        ${contentHtml}
+        ${childrenHtml}
+      </div>
+    `;
+  }
+
+  // Получить все шаги для выпадающего списка (кроме себя и своих детей)
+  function getAllStepsOptions(excludeId, selectedId = "") {
+    let allSteps = [];
+
+    function collectSteps(stepList, prefix = "") {
+      stepList.forEach(s => {
+        if (s.id !== excludeId) {
+          allSteps.push({
+            id: s.id,
+            name: s.name || `Шаг (${s.action})`,
+            prefix: prefix
+          });
+        }
+        if (s.children && s.children.length) {
+          collectSteps(s.children, prefix + "— ");
+        }
+      });
+    }
+
+    collectSteps(steps);
+
+    return allSteps.map(s => 
+      `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${s.prefix}${s.name}</option>`
+    ).join('');
+  }
+
+  // Рендер всех корневых шагов
+  function renderSteps() {
+    $('#steps-container').empty();
+    steps.forEach(step => {
+      $('#steps-container').append(renderStep(step, 0));
+    });
+
+    // Назначаем обработчики
+    attachEventHandlers();
+  }
+
+  // Обновить все выпадающие списки "Переход к шагу" в условных блоках
+  function updateAllConditionNextSelects() {
+    $('.condition-next').each(function() {
+      const $select = $(this);
+      const currentVal = $select.val();
+      const excludeId = $select.closest('[data-id]').data('id');
+
+      // Собираем все шаги, кроме текущего и его детей
+      let allSteps = [];
+
+      function collectSteps(stepList, prefix = "") {
+        stepList.forEach(s => {
+          if (s.id !== excludeId) {
+            allSteps.push({
+              id: s.id,
+              name: s.name || `Шаг (${s.action})`,
+              prefix: prefix
+            });
+          }
+          if (s.children && s.children.length) {
+            collectSteps(s.children, prefix + "— ");
           }
         });
       }
 
-      // Элементы
-      const formScreen = document.getElementById('formScreen');
-      const resultScreen = document.getElementById('resultScreen');
-      const calcForm = document.getElementById('calcForm');
-      const paymentOutput = document.getElementById('payment');
-      const rateValueOutput = document.getElementById('rateValue');
-      const backBtn = document.getElementById('backBtn');
+      collectSteps(steps);
 
-      // Формула аннуитетного платежа
-      function calculateAnnuityPayment(amount, months, annualRate) {
-        const monthlyRate = annualRate / 100 / 12;
-        return (amount * monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+      // Генерируем новый HTML
+      let optionsHtml = `<option value="">— Выберите шаг —</option>`;
+      optionsHtml += allSteps.map(s => 
+        `<option value="${s.id}" ${s.id === currentVal ? 'selected' : ''}>${s.prefix}${s.name}</option>`
+      ).join('');
+
+      // Обновляем
+      $select.html(optionsHtml);
+    });
+  }
+
+  function attachEventHandlers() {
+    // Изменение названия шага
+    $('#steps-container').off('input', '.step-name-input').on('input', '.step-name-input', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) {
+        step.name = $(this).val();
+        // Перерисовать ВСЕ выпадающие списки "Переход к шагу" в условных блоках
+        updateAllConditionNextSelects();
+      }
+    });
+
+    // Изменение типа действия
+    $('#steps-container').off('change', '.action-select').on('change', '.action-select', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (!step) return;
+
+      const newAction = $(this).val();
+      step.action = newAction;
+
+      // Инициализируем структуру под новый тип
+      switch(newAction) {
+        case "Уведомление":
+          step.from = step.from || Object.keys(participants)[0];
+          step.text = step.text || "";
+          break;
+        case "Задание":
+          step.text = step.text || "";
+          step.type = step.type || "Любой";
+          step.dataFields = step.dataFields || "";
+          step.options = step.options || [];
+          break;
+        case "Новость в ленту":
+          step.from = step.from || Object.keys(participants)[0];
+          step.text = step.text || "";
+          break;
+        case "Задача":
+          step.creator = step.creator || Object.keys(participants)[0];
+          step.assignee = step.assignee || step.participant;
+          step.observer = step.observer || "";
+          step.coexecutors = step.coexecutors || "";
+          step.description = step.description || "";
+          break;
+        case "Условный блок — Варианты решения":
+          step.conditions = step.conditions || [];
+          break;
       }
 
-      // Обработка формы
-      calcForm.onsubmit = (e) => {
-        e.preventDefault();
-        
-        const amount = parseFloat(document.getElementById('amount').value);
-        const months = parseInt(document.getElementById('months').value);
-        const rate = parseFloat(document.getElementById('rate').value);
-
-        if (isNaN(amount) || isNaN(months) || isNaN(rate) || amount <= 0 || months <= 0 || rate < 0) {
-          alert("Введите корректные значения!");
-          return;
-        }
-
-        const payment = calculateAnnuityPayment(amount, months, rate);
-        paymentOutput.textContent = payment.toFixed(2);
-        rateValueOutput.textContent = rate;
-
-        // Тактильная обратная связь
-        if (window.vkBridge) {
-          vkBridge.send("VKWebAppTapticImpactOccurred", { style: "medium" });
-        }
-
-        // Переключение экранов
-        formScreen.style.display = 'none';
-        resultScreen.style.display = 'block';
-      };
-
-      // Кнопка "Назад"
-      backBtn.onclick = () => {
-        formScreen.style.display = 'block';
-        resultScreen.style.display = 'none';
-        calcForm.reset();
-      };
+      renderSteps();
     });
-  </script>
+
+    // Основной участник — с синхронизацией assignee для задачи
+    $('#steps-container').off('change', '.participant-select').on('change', '.participant-select', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) {
+        step.participant = $(this).val();
+        // Если это задача — синхронизируем assignee
+        if (step.action === "Задача") {
+          step.assignee = $(this).val();
+        }
+      }
+    });
+
+    // Уведомление
+    $('#steps-container').off('change', '.notification-from').on('change', '.notification-from', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.from = $(this).val();
+    });
+
+    $('#steps-container').off('input', '.notification-text').on('input', '.notification-text', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.text = $(this).val();
+    });
+
+    // Задание
+    $('#steps-container').off('input', '.assignment-text').on('input', '.assignment-text', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.text = $(this).val();
+    });
+
+    $('#steps-container').off('change', '.assignment-type').on('change', '.assignment-type', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.type = $(this).val();
+    });
+
+    $('#steps-container').off('input', '.assignment-data').on('input', '.assignment-data', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.dataFields = $(this).val();
+    });
+
+    // Варианты ответа
+    $('#steps-container').off('click', '.add-option-btn').on('click', '.add-option-btn', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (!step.options) step.options = [];
+      step.options.push({ text: '' });
+      renderSteps();
+    });
+
+    $('#steps-container').off('click', '.remove-option-btn').on('click', '.remove-option-btn', function() {
+      const optionBlock = $(this).closest('.option-block');
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      const optionIndex = parseInt(optionBlock.data('option-index'));
+      step.options.splice(optionIndex, 1);
+      renderSteps();
+    });
+
+    $('#steps-container').off('input', '.option-text').on('input', '.option-text', function() {
+      const optionBlock = $(this).closest('.option-block');
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      const optionIndex = parseInt(optionBlock.data('option-index'));
+      step.options[optionIndex].text = $(this).val();
+    });
+
+    // Новость
+    $('#steps-container').off('change', '.news-from').on('change', '.news-from', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.from = $(this).val();
+    });
+
+    $('#steps-container').off('input', '.news-text').on('input', '.news-text', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.text = $(this).val();
+    });
+
+    // Задача
+    $('#steps-container').off('change', '.task-creator').on('change', '.task-creator', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.creator = $(this).val();
+    });
+
+    $('#steps-container').off('change', '.task-assignee').on('change', '.task-assignee', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) {
+        step.assignee = $(this).val();
+        step.participant = $(this).val();
+      }
+    });
+
+    $('#steps-container').off('change', '.task-observer').on('change', '.task-observer', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.observer = $(this).val();
+    });
+
+    $('#steps-container').off('input', '.task-coexecutors').on('input', '.task-coexecutors', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.coexecutors = $(this).val();
+    });
+
+    $('#steps-container').off('input', '.task-description').on('input', '.task-description', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.description = $(this).val();
+    });
+
+    // Комментарий для условного блока
+    $('#steps-container').off('input', '.conditional-comment').on('input', '.conditional-comment', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (step) step.comment = $(this).val();
+    });
+
+    // Условия перехода
+    $('#steps-container').off('click', '.add-condition-btn').on('click', '.add-condition-btn', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (!step.conditions) step.conditions = [];
+      step.conditions.push({ condition: '', nextStepId: '' });
+      renderSteps();
+    });
+
+    $('#steps-container').off('click', '.remove-condition-btn').on('click', '.remove-condition-btn', function() {
+      const conditionBlock = $(this).closest('.variant-block');
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      const conditionIndex = parseInt(conditionBlock.data('condition-index'));
+      step.conditions.splice(conditionIndex, 1);
+      renderSteps();
+    });
+
+    $('#steps-container').off('input', '.condition-text').on('input', '.condition-text', function() {
+      const conditionBlock = $(this).closest('.variant-block');
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      const conditionIndex = parseInt(conditionBlock.data('condition-index'));
+      step.conditions[conditionIndex].condition = $(this).val();
+    });
+
+    $('#steps-container').off('change', '.condition-next').on('change', '.condition-next', function() {
+      const conditionBlock = $(this).closest('.variant-block');
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      const conditionIndex = parseInt(conditionBlock.data('condition-index'));
+      step.conditions[conditionIndex].nextStepId = $(this).val();
+    });
+
+    // Удаление шага
+    $('#steps-container').off('click', '.delete-step').on('click', '.delete-step', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      if (confirm('Удалить шаг и все подшаги?')) {
+        deleteStepById(id);
+        renderSteps();
+      }
+    });
+
+    // Добавление подшага
+    $('#steps-container').off('click', '.add-child-step').on('click', '.add-child-step', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      const step = findStepById(id);
+      if (!step.children) step.children = [];
+
+      const firstParticipant = Object.keys(participants)[0] || "Неизвестный";
+      step.children.push(createEmptyStep(firstParticipant));
+      renderSteps();
+    });
+
+    // Перемещение вверх/вниз (только в пределах родителя)
+    $('#steps-container').off('click', '.move-up').on('click', '.move-up', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      moveStep(id, -1);
+    });
+
+    $('#steps-container').off('click', '.move-down').on('click', '.move-down', function() {
+      const id = $(this).closest('[data-id]').data('id');
+      moveStep(id, 1);
+    });
+  }
+
+  // Создать пустой шаг
+  function createEmptyStep(participant) {
+    return {
+      id: generateId(),
+      name: "Новый шаг",
+      action: "Уведомление",
+      participant: participant,
+      from: participant,
+      text: "",
+      type: "Любой",
+      dataFields: "",
+      options: [],
+      conditions: [],
+      assignee: participant,
+      observer: "",
+      creator: participant,
+      coexecutors: "",
+      description: "",
+      children: []
+    };
+  }
+
+  // Поиск шага по ID (рекурсивно)
+  function findStepById(id, stepList = steps) {
+    for (let step of stepList) {
+      if (step.id === id) return step;
+      if (step.children && step.children.length) {
+        const found = findStepById(id, step.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  // Удаление шага по ID
+  function deleteStepById(id, stepList = steps) {
+    for (let i = 0; i < stepList.length; i++) {
+      if (stepList[i].id === id) {
+        stepList.splice(i, 1);
+        return true;
+      }
+      if (stepList[i].children && stepList[i].children.length) {
+        if (deleteStepById(id, stepList[i].children)) return true;
+      }
+    }
+    return false;
+  }
+
+  // Перемещение шага вверх/вниз
+  function moveStep(id, direction) {
+    // Сначала проверим, корневой ли это шаг
+    const rootIndex = steps.findIndex(s => s.id === id);
+    if (rootIndex !== -1) {
+      // Это корневой шаг — перемещаем в массиве steps
+      const newIndex = rootIndex + direction;
+      if (newIndex >= 0 && newIndex < steps.length) {
+        [steps[rootIndex], steps[newIndex]] = [steps[newIndex], steps[rootIndex]];
+        renderSteps();
+      }
+      return;
+    }
+
+    // Если не корневой — ищем внутри детей
+    function findAndMoveInParent(stepList) {
+      for (let i = 0; i < stepList.length; i++) {
+        const currentStep = stepList[i];
+        if (currentStep.children && currentStep.children.length) {
+          const childIndex = currentStep.children.findIndex(child => child.id === id);
+          if (childIndex !== -1) {
+            // Нашли ребенка — перемещаем внутри children
+            const newIndex = childIndex + direction;
+            if (newIndex >= 0 && newIndex < currentStep.children.length) {
+              [currentStep.children[childIndex], currentStep.children[newIndex]] = 
+              [currentStep.children[newIndex], currentStep.children[childIndex]];
+              renderSteps();
+            }
+            return true;
+          }
+          // Рекурсивно ищем глубже
+          if (findAndMoveInParent(currentStep.children)) return true;
+        }
+      }
+      return false;
+    }
+
+    findAndMoveInParent(steps);
+  }
+
+  // Участники
+  function renderParticipants() {
+    $('#participants').empty();
+    for (const [key, value] of Object.entries(participants)) {
+      $('#participants').append(`
+        <div class="col-4 mb-2">
+          <input type="text" class="form-control participant-input" value="${value}" data-key="${key}" placeholder="Имя участника" />
+        </div>
+      `);
+    }
+  }
+
+  $('#participants').on('input', '.participant-input', function() {
+    const oldKey = $(this).data('key');
+    const newValue = $(this).val().trim();
+
+    if (!newValue) {
+      showMsg('Имя участника не может быть пустым', false);
+      $(this).val(participants[oldKey]);
+      return;
+    }
+
+    for (const key of Object.keys(participants)) {
+      if (key !== oldKey && participants[key] === newValue) {
+        showMsg('Участник с таким именем уже существует', false);
+        $(this).val(participants[oldKey]);
+        return;
+      }
+    }
+
+    const oldValue = participants[oldKey];
+    delete participants[oldKey];
+    participants[newValue] = newValue;
+    $(this).data('key', newValue);
+
+    function updateStepParticipants(step) {
+      if (step.participant === oldValue) step.participant = newValue;
+      if (step.from === oldValue) step.from = newValue;
+      if (step.assignee === oldValue) step.assignee = newValue;
+      if (step.observer === oldValue) step.observer = newValue;
+      if (step.creator === oldValue) step.creator = newValue;
+      if (step.children && step.children.length) {
+        step.children.forEach(updateStepParticipants);
+      }
+    }
+
+    steps.forEach(updateStepParticipants);
+    renderSteps();
+  });
+
+  $('#add-participant-btn').on('click', function() {
+    const newName = $('#new-participant').val().trim();
+    if (!newName) {
+      showMsg('Введите имя участника', false);
+      return;
+    }
+
+    if (participants[newName] !== undefined) {
+      showMsg('Такой участник уже существует', false);
+      return;
+    }
+
+    participants[newName] = newName;
+    $('#new-participant').val('');
+    renderParticipants();
+    renderSteps();
+    showMsg('Участник добавлен', true);
+  });
+
+  $('#new-participant').on('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $('#add-participant-btn').click();
+    }
+  });
+
+  // Добавление корневого шага
+  $('#add-step').click(() => {
+    const firstParticipant = Object.keys(participants)[0] || "Неизвестный";
+    steps.push(createEmptyStep(firstParticipant));
+    renderSteps();
+  });
+
+  // Экспорт
+  $('#export-btn').click(() => {
+    const processName = $('#process-name').val().trim() || 'Мой бизнес-процесс';
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, '-').substring(0, 19);
+    const safeName = processName.replace(/\s+/g, '_').replace(/[^\wа-яА-ЯёЁ_-]/g, '');
+
+    const data = {
+      participants,
+      steps,
+      nextId,
+      date: now.toISOString(),
+      processName
+    };
+
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeName}_${timestamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Импорт
+  $('#trigger-import').click(() => {
+    $('#import-file').click();
+  });
+
+  $('#import-file').change(() => {
+    const file = $('#import-file')[0].files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (data.participants && data.steps) {
+          clearAllData();
+          participants = data.participants;
+          steps = data.steps;
+          nextId = data.nextId || 1;
+          if (data.processName) $('#process-name').val(data.processName);
+          renderParticipants();
+          renderSteps();
+          showMsg('Черновик импортирован', true);
+        } else {
+          showMsg('Некорректный файл', false);
+        }
+      } catch(e) {
+        showMsg('Ошибка при чтении файла: ' + e.message, false);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // Очистить всё
+  $('#clear-all-btn').click(() => {
+    if (confirm('⚠️ Вы уверены, что хотите полностью очистить ТЗ? Это действие нельзя отменить.')) {
+      clearAllData();
+      showMsg('ТЗ очищено', true);
+    }
+  });
+
+  // Генерация ТЗ
+  $('#generate-tz').click(() => {
+    const processName = $('#process-name').val().trim() || 'Мой бизнес-процесс';
+
+    // Собираем участников
+    const renderedParticipants = {};
+    $('#participants .participant-input').each(function() {
+      const key = $(this).data('key');
+      const value = $(this).val().trim();
+      if (value) renderedParticipants[key] = value;
+    });
+
+    function collectStepsForExport(stepList, level = 0) {
+      let result = [];
+      stepList.forEach(s => {
+        let stepData = { ...s };
+        delete stepData.children; // чтобы не дублировать при рекурсии
+
+        result.push({
+          ...stepData,
+          level: level
+        });
+
+        if (s.children && s.children.length) {
+          result = result.concat(collectStepsForExport(s.children, level + 1));
+        }
+      });
+      return result;
+    }
+
+    const allSteps = collectStepsForExport(steps);
+
+    if (allSteps.length === 0) {
+      showMsg('Добавьте хотя бы один шаг', false);
+      return;
+    }
+
+    let text = `🎯 Название: ${processName}\n🗓️ Дата: ${new Date().toLocaleString()}\n\n👥 Участники:\n`;
+    text += Object.entries(renderedParticipants).map(([k,v]) => `- ${k}: ${v}`).join('\n');
+    text += `\n\n📝 Шаги:\n`;
+
+    allSteps.forEach((s, i) => {
+      const indent = "  ".repeat(s.level);
+      text += `${indent}${i+1}. [${s.name || 'Без названия'}] (${s.action}) → ${s.participant}\n`;
+
+      switch(s.action) {
+        case "Уведомление":
+          text += `${indent}   От: ${s.from}\n`;
+          text += `${indent}   Текст: ${s.text || '—'}\n`;
+          break;
+        case "Задание":
+          text += `${indent}   Текст: ${s.text || '—'}\n`;
+          text += `${indent}   Тип: ${s.type}\n`;
+          if (s.dataFields) text += `${indent}   Данные: ${s.dataFields}\n`;
+          if (s.options && s.options.length) {
+            s.options.forEach((opt, idx) => {
+              text += `${indent}   Вариант ${idx+1}: ${opt.text}\n`;
+            });
+          }
+          break;
+        case "Новость в ленту":
+          text += `${indent}   От: ${s.from}\n`;
+          text += `${indent}   Текст: ${s.text || '—'}\n`;
+          break;
+        case "Задача":
+          text += `${indent}   Постановщик: ${s.creator}\n`;
+          text += `${indent}   Ответственный: ${s.assignee}\n`;
+          if (s.observer) text += `${indent}   Наблюдатель: ${s.observer}\n`;
+          if (s.coexecutors) text += `${indent}   Соисполнители: ${s.coexecutors}\n`;
+          if (s.description) text += `${indent}   Описание: ${s.description}\n`;
+          break;
+        case "Условный блок — Варианты решения":
+          if (s.comment) {
+            text += `${indent}   Комментарий: ${s.comment}\n`;
+          }
+          if (s.conditions && s.conditions.length) {
+            s.conditions.forEach((v, idx) => {
+              text += `${indent}   Условие ${idx+1}: ${v.condition || '—'} → Переход к: ${v.nextStepId || 'не указано'}\n`;
+            });
+          }
+          break;
+      }
+    });
+
+    $('#final-tz').html(`<pre>${text}</pre>`);
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = processName.replace(/\s+/g, '_') + '_тз.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  function showMsg(msg, success) {
+    $('#message').html(`<div class="alert ${success ? 'alert-success' : 'alert-danger'}">${msg}</div>`);
+    setTimeout(() => { $('#message').empty(); }, 3000);
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+});
+
+</script>
+
 </body>
 </html>
